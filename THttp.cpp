@@ -13,7 +13,7 @@ void THttp::post(
 	const wchar_t* url,const wchar_t* path,
 	const std::string& body, std::string& res,
 	bool IsHttps) {
-
+	int len = body.length();
 	HINTERNET hInternet = nullptr;
 	HINTERNET hConnect = nullptr;
 	HINTERNET hRequest = nullptr;
@@ -40,7 +40,7 @@ void THttp::post(
 
 		// Send the request
 		if (!HttpSendRequestW(hRequest, m_headers, m_headers.GetLength(),
-			(LPVOID)body.c_str(), body.length() - 1)) {
+			(LPVOID)body.c_str(), body.length())) {
 			throw "Failed to send HTTPS request";
 		}
 

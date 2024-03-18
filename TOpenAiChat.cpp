@@ -9,14 +9,13 @@ using namespace rapidjson;
 void LocalTextFromUtf8(const std::string& req, std::string& res) {
 	int nLen1 = MultiByteToWideChar(CP_UTF8, NULL, req.c_str(), -1, NULL, 0);
 	std::string textW;
-	textW.resize(2 * nLen1 + 2);
+	textW.resize(2 * nLen1+2);
 	wchar_t* wstr = (wchar_t*)(textW.c_str());
 	MultiByteToWideChar(CP_UTF8, NULL, req.c_str(), -1, wstr, nLen1);
 	wstr[nLen1 - 1] = 0;
-	wstr[nLen1 - 2] = 0;
 
 	int nLen2 = WideCharToMultiByte(CP_ACP, NULL, wstr, -1, NULL, NULL, NULL, NULL);
-	res.resize(nLen2 + 1);
+	res.resize(nLen2);
 	char* text = (char*)(res.c_str());
 	WideCharToMultiByte(CP_ACP, NULL, wstr, -1, text, nLen2, NULL, NULL);
 	text[nLen2] = 0;
@@ -35,7 +34,7 @@ void LocalText2Utf8(const std::string& req, std::string& res) {
 	res.resize(nLen2);
 	char* text = (char*)(res.c_str());
 	WideCharToMultiByte(CP_UTF8, NULL, wstr, -1, text, nLen2, NULL, NULL);
-	text[nLen2-1] = 0;
+	text[nLen2] = 0;
 }
 
 void CreateJsonBuffer(const std::string& model1, const std::string& msg1, StringBuffer& buffer) {
@@ -79,15 +78,16 @@ TOpenAiChat::TOpenAiChat() {
 void TOpenAiChat::post(
 	const std::string& model, const std::string& req,
 	std::string& res) {
-	//放到json中转为请求字符串
-	StringBuffer req2OpenAi;
-	CreateJsonBuffer(model, req, req2OpenAi);
 	//将req转utf8
 	std::string reqUtf8;
-	LocalText2Utf8(req2OpenAi.GetString(), reqUtf8);
+	LocalText2Utf8(req, reqUtf8);
+	//放到json中转为请求字符串
+	StringBuffer req2OpenAi;
+	CreateJsonBuffer(model, reqUtf8, req2OpenAi);
 	//发送请求
 	std::string resFromOpenAI;
-	THttp::post(L"api.openai.com", L"/v1/chat/completions", reqUtf8, resFromOpenAI);
+	const char* tmp = req2OpenAi.GetString();
+	THttp::post(L"api.openai.com", L"/v1/chat/completions", tmp, resFromOpenAI);
 	//获取请求，将请求中的返回字符串转为本地编码返回
 	Document doc;
 	doc.Parse(resFromOpenAI.c_str());

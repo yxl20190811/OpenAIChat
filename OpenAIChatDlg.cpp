@@ -12,6 +12,7 @@
 #define new DEBUG_NEW
 #endif
 
+#define WM_YY (WM_USER+100)
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -59,12 +60,18 @@ COpenAIChatDlg::COpenAIChatDlg(CWnd* pParent /*=nullptr*/)
 void COpenAIChatDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, ID_SEND, m_ButtonSend);
+	DDX_Control(pDX, IDC_EDIT2, m_EditMsg);
+	DDX_Control(pDX, IDC_RICHEDIT21, m_EditResult);
+	DDX_Control(pDX, IDC_COMBO1, m_Combox);
 }
 
 BEGIN_MESSAGE_MAP(COpenAIChatDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_BUTTON_CLEAR, &COpenAIChatDlg::OnBnClickedButtonClear)
+	ON_BN_CLICKED(ID_SEND, &COpenAIChatDlg::OnBnClickedSend)
 END_MESSAGE_MAP()
 
 
@@ -100,7 +107,10 @@ BOOL COpenAIChatDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-
+	m_Combox.AddString("gpt-3.5-turbo");
+	m_Combox.AddString("gpt-4-turbo-preview");
+	m_Combox.SetCurSel(0);
+	m_EditMsg.SetWindowTextA("请写一首古诗\n一首江南的诗");
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -153,3 +163,36 @@ HCURSOR COpenAIChatDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+void COpenAIChatDlg::OnBnClickedButtonClear()
+{
+	m_text = "";
+	m_EditResult.SetWindowTextA(m_text);
+}
+
+
+void COpenAIChatDlg::OnBnClickedSend()
+{
+	CStringA msg;
+	m_EditMsg.GetWindowTextA(msg);
+	CStringA model;
+	m_Combox.GetLBText(m_Combox.GetCurSel(), model);
+	if (msg.IsEmpty() || model.IsEmpty()) {
+		return;
+	}
+	m_ButtonSend.EnableWindow(false);
+	TOpenAiChatThread::add(model.GetString(), msg.GetString());
+	m_text = m_text + "user:\n" + msg + "\n";
+	m_EditResult.SetWindowTextA(m_text);
+}
+
+void COpenAIChatDlg::OnRecvFromOpenAI(std::string& text) {
+	if (text.empty()) {
+		m_text = m_text + "openai:null\n\n";
+		m_EditResult.SetWindowTextA(m_text);
+	}
+	else {
+		m_text = m_text + "openai:\n" + text.c_str() + "\n\n";
+		m_EditResult.SetWindowTextA(m_text);
+	}
+	m_ButtonSend.EnableWindow(true);
+}

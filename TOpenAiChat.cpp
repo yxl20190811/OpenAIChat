@@ -29,13 +29,13 @@ void LocalText2Utf8(const std::string& req, std::string& res) {
 	wchar_t* wstr = (wchar_t*)(textW.c_str());
 	MultiByteToWideChar(CP_ACP, NULL, req.c_str(), -1, wstr, nLen1);
 	wstr[nLen1 - 1] = 0;
-	wstr[nLen1 - 2] = 0;
+
 
 	int nLen2 = WideCharToMultiByte(CP_UTF8, NULL, wstr, -1, NULL, NULL, NULL, NULL);
-	res.resize(nLen2 + 1);
+	res.resize(nLen2);
 	char* text = (char*)(res.c_str());
 	WideCharToMultiByte(CP_UTF8, NULL, wstr, -1, text, nLen2, NULL, NULL);
-	text[nLen2] = 0;
+	text[nLen2-1] = 0;
 }
 
 void CreateJsonBuffer(const std::string& model1, const std::string& msg1, StringBuffer& buffer) {
@@ -67,32 +67,38 @@ void CreateJsonBuffer(const std::string& model1, const std::string& msg1, String
 
 
 TOpenAiChat::TOpenAiChat() {
-	char x[1024*100];
-	DWORD count = ::GetEnvironmentVariableA("hyt123", x, 1024 * 100);
+	wchar_t x[1024*10];
+	DWORD count = ::GetEnvironmentVariableW(L"hyt123", x, 1024 * 10);
 	if (count <= 0) {
 		::MessageBoxA(NULL, "获取OpenAI的key失败，GetEnvironmentVariableW(\"hyt123\")", "错误", MB_ABORTRETRYIGNORE);
 		abort();
 	}
-	m_headers = m_headers + "Authorization: Bearer" + x + "\n";
+	m_headers = m_headers + L"Authorization: Bearer " + x + L"\n";
 }
 
 void TOpenAiChat::post(
 	const std::string& model, const std::string& req,
 	std::string& res) {
-	//将req转utf8
-	std::string reqUtf8;
-	LocalText2Utf8(req, reqUtf8);
 	//放到json中转为请求字符串
 	StringBuffer req2OpenAi;
-	CreateJsonBuffer(model, reqUtf8, req2OpenAi);
+	CreateJsonBuffer(model, req, req2OpenAi);
+	//将req转utf8
+	std::string reqUtf8;
+	LocalText2Utf8(req2OpenAi.GetString(), reqUtf8);
 	//发送请求
 	std::string resFromOpenAI;
-	THttp::post("api.openai.com", "/v1/chat/completions", req2OpenAi.GetString(), resFromOpenAI);
+	THttp::post(L"api.openai.com", L"/v1/chat/completions", reqUtf8, resFromOpenAI);
 	//获取请求，将请求中的返回字符串转为本地编码返回
 	Document doc;
-	doc.Parse(res.c_str());
+	doc.Parse(resFromOpenAI.c_str());
 	if (!doc.IsObject()) {
-		std::cerr << "JSON解析失败" << std::endl;
+		res = "解析从OpenAi返回的JSON失败";
+		return;
+	}
+	if (doc.HasMember("error")) {
+		const Value& error = doc["error"];
+		const Value& message = error["message"];
+		res = message.GetString();
 		return;
 	}
 	std::string ret;

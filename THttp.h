@@ -5,11 +5,11 @@ class THttp
 public:
 	THttp();
 	void post(
-		const char* url,
-		const char* path,
+		const wchar_t* url,
+		const wchar_t* path,
 		const std::string& req, std::string& res,
 		bool IsHttps = true);
 protected:
-	std::string m_headers;
+	CStringW m_headers;
 };
 

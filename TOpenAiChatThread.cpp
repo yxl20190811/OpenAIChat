@@ -5,6 +5,7 @@
 TOpenAiChatThread::TOpenAiChatThread() {
 	m_IsReady2Post = false;
 	m_IsFree2Add = true;
+	::AfxBeginThread(ThreadFun, this);
 }
 void TOpenAiChatThread::add(const std::string& model, const std::string& req) {
 	while(!m_IsFree2Add) {

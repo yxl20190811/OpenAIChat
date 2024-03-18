@@ -10,7 +10,7 @@ THttp::THttp() {
 }
 
 void THttp::post(
-	const char* url,const char* path,
+	const wchar_t* url,const wchar_t* path,
 	const std::string& body, std::string& res,
 	bool IsHttps) {
 
@@ -19,27 +19,27 @@ void THttp::post(
 	HINTERNET hRequest = nullptr;
 	try {
 		// Initialize WinINet session
-		hInternet = InternetOpenA(nullptr, INTERNET_OPEN_TYPE_DIRECT, nullptr, nullptr, 0);
+		hInternet = InternetOpenW(nullptr, INTERNET_OPEN_TYPE_DIRECT, nullptr, nullptr, 0);
 		if (!hInternet)
 			throw "Failed to initialize WinINet session";
 
 		// Connect to the server
-		hConnect = InternetConnectA(hInternet, url, INTERNET_DEFAULT_HTTPS_PORT, nullptr, nullptr, INTERNET_SERVICE_HTTP, 0, 1);
+		hConnect = InternetConnectW(hInternet, url, INTERNET_DEFAULT_HTTPS_PORT, nullptr, nullptr, INTERNET_SERVICE_HTTP, 0, 1);
 		if (!hConnect)
 			throw "Failed to connect to the server";
 
 		// Open an HTTPS request
 		if (IsHttps) {
-			hRequest = HttpOpenRequestA(hConnect, "POST", path, nullptr, nullptr, nullptr, INTERNET_FLAG_SECURE, 1);
+			hRequest = HttpOpenRequestW(hConnect, L"POST", path, nullptr, nullptr, nullptr, INTERNET_FLAG_SECURE, 1);
 		}
 		else {
-			hRequest = HttpOpenRequestA(hConnect, "POST", path, nullptr, nullptr, nullptr, 0, 1);
+			hRequest = HttpOpenRequestW(hConnect, L"POST", path, nullptr, nullptr, nullptr, 0, 1);
 		}
 		if (!hRequest)
 			throw "Failed to open HTTPS request";
 
 		// Send the request
-		if (!HttpSendRequestA(hRequest, m_headers.c_str(), m_headers.length(),
+		if (!HttpSendRequestW(hRequest, m_headers, m_headers.GetLength(),
 			(LPVOID)body.c_str(), body.length() - 1)) {
 			throw "Failed to send HTTPS request";
 		}
